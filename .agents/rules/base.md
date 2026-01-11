@@ -60,6 +60,108 @@ func TestText_WithBoldStyle_RendersBoldText(t *testing.T)
 func TestBox_WithPadding_ReducesAvailableSpace(t *testing.T)
 ```
 
+### Test Quality Rules
+
+**Baby steps ≠ Superficial tests.** Every test must validate actual behavior.
+
+#### What Makes a Good Test
+
+**✅ DO:**
+- Verify concrete values, not just "exists" or "not nil"
+- Test edge cases (zero, negative, boundary values)
+- Validate invariants (enums don't change order, ranges respected)
+- Check actual behavior (stored value == retrieved value)
+- Test error conditions if applicable
+
+**❌ DON'T:**
+- Only check `!= nil` (except for constructors that return interfaces)
+- Only check values are "different" without verifying which is which
+- Skip boundary validation (negative, overflow, empty)
+- Trust implementation without verifying observable behavior
+
+#### Examples
+
+**❌ Superficial (BAD):**
+```go
+func TestDirection_Values_ExistAndAreDifferent(t *testing.T) {
+    if Column == Row {  // Doesn't verify which is 0 or 1
+        t.Error("should be different")
+    }
+}
+```
+
+**✅ Robust (GOOD):**
+```go
+func TestDirection_Column_IsZero(t *testing.T) {
+    if Column != 0 {  // Protects against reordering
+        t.Errorf("Column should be 0, got %d", Column)
+    }
+}
+
+func TestDirection_Row_IsOne(t *testing.T) {
+    if Row != 1 {
+        t.Errorf("Row should be 1, got %d", Row)
+    }
+}
+```
+
+**❌ Superficial (BAD):**
+```go
+func TestDimensionFixed_WithValue_CanBeCreated(t *testing.T) {
+    dim := DimensionFixed(100)
+    if dim == nil {  // Doesn't verify value is stored
+        t.Error("should not be nil")
+    }
+}
+```
+
+**✅ Robust (GOOD):**
+```go
+// First expose the value through interface or method
+type fixedDimension interface {
+    Dimension
+    Value() int
+}
+
+func TestDimensionFixed_StoresValue(t *testing.T) {
+    dim := DimensionFixed(100)
+    fixed, ok := dim.(fixedDimension)
+    if !ok {
+        t.Fatal("should implement fixedDimension")
+    }
+    if got := fixed.Value(); got != 100 {
+        t.Errorf("expected 100, got %d", got)
+    }
+}
+
+func TestDimensionFixed_NegativeValue_IsError(t *testing.T) {
+    dim := DimensionFixed(-10)
+    // Should either: panic, return error, or clamp to 0
+    // Test the actual behavior
+}
+```
+
+#### Test Checklist (per type)
+
+**Enums:**
+- [ ] Verify concrete values (0, 1, 2...) not just "different"
+- [ ] Protects against reordering
+
+**Structs:**
+- [ ] All fields can be set and retrieved
+- [ ] Zero values behave correctly
+- [ ] Edge cases (negative, max, empty) handled
+
+**Functions/Constructors:**
+- [ ] Return values match inputs
+- [ ] Edge cases return expected results
+- [ ] Invalid inputs handled (error/panic/clamp)
+
+**Interfaces:**
+- [ ] Concrete implementations satisfy interface
+- [ ] Method contracts verified through behavior
+- [ ] Can't test internal state? Design is wrong - expose needed behavior
+
 ## 5. Task Runner (Makefile)
 
 **NEVER** call tools directly. Always use Make:
@@ -98,8 +200,9 @@ Before EVERY commit:
 
 1. 👣 Baby steps - one test at a time
 2. ❌➡️✅ TDD - failing test first
-3. 🔧 Use `make` - never call tools directly
-4. 📏 Small code - ≤20 lines per function
-5. ✅ Validate before every commit
-6. 🧪 Run tests after every change
-7. ❓ Ask when in doubt
+3. 💪 Robust tests - verify concrete values, test edge cases, validate invariants
+4. 🔧 Use `make` - never call tools directly
+5. 📏 Small code - ≤20 lines per function
+6. ✅ Validate before every commit
+7. 🧪 Run tests after every change
+8. ❓ Ask when in doubt
