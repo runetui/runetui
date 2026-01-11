@@ -29,24 +29,27 @@
 //
 //	package main
 //
-//	import "github.com/runetui/runetui"
+//	import (
+//		"log"
+//		"github.com/runetui/runetui"
+//	)
 //
 //	func main() {
-//		app := runetui.New(App)
-//		if err := app.Run(); err != nil {
-//			panic(err)
-//		}
-//	}
+//		app := runetui.New(func() runetui.Component {
+//			return runetui.Box(
+//				runetui.BoxProps{
+//					Direction: runetui.Column,
+//					Padding:   runetui.SpacingAll(2),
+//					Border:    runetui.BorderSingle,
+//				},
+//				runetui.Text("Hello, RuneTUI!", runetui.TextProps{Bold: true}),
+//				runetui.Text("Press Ctrl+C to quit"),
+//			)
+//		})
 //
-//	func App() runetui.Component {
-//		return runetui.Box(
-//			runetui.Text("Hello, RuneTUI!"),
-//			runetui.Style{
-//				Border:      true,
-//				BorderColor: runetui.ColorCyan,
-//				Padding:     1,
-//			},
-//		)
+//		if err := app.Run(); err != nil {
+//			log.Fatal(err)
+//		}
 //	}
 //
 // # Architecture
@@ -59,6 +62,7 @@
 //
 //	func Dashboard() runetui.Component {
 //		return runetui.Box(
+//			runetui.BoxProps{Direction: runetui.Column},
 //			runetui.VStack(
 //				Header(),
 //				runetui.HStack(
@@ -68,6 +72,51 @@
 //				Footer(),
 //			),
 //		)
+//	}
+//
+// # Available Components
+//
+// Core components:
+//   - Box: Container with flexbox-like layout (Column/Row direction)
+//   - Text: Text rendering with styling (colors, bold, italic, alignment, wrapping)
+//   - VStack/HStack: Convenience wrappers for vertical/horizontal stacks
+//   - Static: Accumulates content across renders (ideal for logs and streaming output)
+//   - Spacer/FlexSpacer: Space management utilities
+//
+// # Layout System
+//
+// RuneTUI uses a flexbox-inspired layout system:
+//   - Direction: Column (vertical) or Row (horizontal)
+//   - Dimensions: Auto, Fixed, or Percentage-based sizing
+//   - Flex properties: FlexGrow and FlexShrink for flexible sizing
+//   - Alignment: AlignItems (cross-axis) and JustifyContent (main-axis)
+//   - Spacing: Padding, Margin, and Gap support
+//   - Borders: Single, Double, or Rounded border styles
+//
+// # Static vs Dynamic Zones
+//
+// RuneTUI distinguishes between static and dynamic UI zones:
+//   - Static zones (Static component): Content accumulates across renders,
+//     old content is not re-rendered (efficient for logs, agent output, streaming)
+//   - Dynamic zones (regular components): Content is re-rendered on every frame
+//     (perfect for status bars, progress indicators, current state)
+//
+// # Testing
+//
+// The testing package provides utilities for testing components:
+//   - RenderToString: Render components without a terminal
+//   - AssertSnapshot: Snapshot testing with golden files
+//   - TestApp: Simulate user interactions and terminal resizes
+//
+// Example:
+//
+//	import "github.com/runetui/runetui/testing"
+//
+//	func TestMyComponent(t *testing.T) {
+//		output := testing.RenderToString(func() runetui.Component {
+//			return runetui.Text("Hello, World!")
+//		}, 80, 24)
+//		testing.AssertSnapshot(t, "my_component", output)
 //	}
 //
 // # Use Cases

@@ -14,6 +14,12 @@ test: ## Run all tests
 test-unit: ## Run unit tests (short mode)
 	go test ./... -v -short
 
+test-examples: ## Run example tests
+	go test ./examples/... -v
+
+test-examples-update: ## Update example snapshots
+	go test ./examples/... -update
+
 test-coverage: ## Run tests with coverage report
 	go test ./... -coverprofile=coverage.out
 	go tool cover -html=coverage.out -o coverage.html
