@@ -69,7 +69,37 @@ This document contains all development rules and guidelines for this project, ap
 - **Separate Dev Docs**: All developer, CI, and infrastructure documentation must be placed in a separate development guide (e.g., docs/development_guide.md), with a clear link from the README.
 - **Error Examples**: User-facing documentation should include example error messages for common validation failures to help users quickly resolve issues.
 
-## 8. Development Best Practices
+## 8. Go Architecture Guidelines
+
+### Architecture by Project Type
+- **Services (APIs, CLIs, Workers)**: Hexagonal Architecture (Ports & Adapters) with `internal/domain/`, `internal/application/`, `internal/infrastructure/`
+- **Libraries/Frameworks**: Flat structure with public API at root. No hexagonal - the "domain" IS the functionality being provided
+- **UI Frameworks specifically**: The "business logic" is rendering - there's no meaningful separation from "infrastructure"
+
+### Package Naming
+- **No generic packages**: Never create `utils`, `common`, or `helpers` packages
+- **Semantic naming**: Name packages by their domain purpose (e.g., `layout`, `render`, `component`)
+- **Use `internal/`**: Only for truly private implementation details not part of public API
+
+### Error Handling Patterns
+- **Domain errors as variables**: Export errors as package-level variables for type checking
+  ```go
+  var ErrNotFound = errors.New("not found")
+  ```
+- **Error wrapping**: Always wrap errors with context using `fmt.Errorf("context: %w", err)`
+- **Error chain preservation**: Use `%w` verb to allow `errors.Is()` and `errors.As()` checks
+
+### Configuration Boundaries
+- **Core packages pure**: Domain/core code must never read environment variables or external config
+- **Entrypoints wire**: Only `cmd/main.go` or adapter layers read config and inject values
+- **Testability**: This keeps components pure, predictable, and easily testable
+
+### Context Usage
+- **Cancellation support**: Use `context.Context` for operations that may need cancellation
+- **I/O operations**: All I/O (network, file system) should accept context
+- **Propagation**: Pass context through the call chain, don't store it
+
+## 9. General Development Best Practices
 
 ### Error Handling & Debugging
 - **Graceful Error Handling**: Always implement proper error handling with meaningful error messages.
@@ -95,7 +125,7 @@ This document contains all development rules and guidelines for this project, ap
 - **E2E Tests**: Full system validation (minimal, critical user paths only).
 - **Test Pyramid**: Follow the test pyramid - many unit tests, some integration tests, few E2E tests.
 
-## 9. Test-Driven Development Rules
+## 10. Test-Driven Development Rules
 
 ### TDD Approach
 - **Failing Test First**: Always start with a failing test before implementing new functionality.
@@ -135,7 +165,7 @@ This document contains all development rules and guidelines for this project, ap
 - **Post-Pass Review**: After a test passes, review for opportunities to simplify or clarify.
 - **Helper Refactoring**: Refactor test helpers and fixtures as needed to keep the suite DRY and maintainable.
 
-## 10. Task Runner Usage
+## 11. Task Runner Usage
 
 ### Core Rule
 **NEVER** call tools like `go test`, `golangci-lint`, `gofmt`, or similar directly. Always use the project's task runner (Makefile).
@@ -171,7 +201,7 @@ golangci-lint run
 gofmt -w .
 ```
 
-## 11. Pre-Commit Validation (MANDATORY)
+## 12. Pre-Commit Validation (MANDATORY)
 
 Before ANY commit:
 1. Run the project's validation task (e.g., `make validate`, `npm run validate`, `./gradlew check`)
@@ -181,7 +211,7 @@ Before ANY commit:
 ❌ **NEVER**: Commit → discover errors → fix commit
 ✅ **ALWAYS**: Validate → fix all errors → commit once
 
-## 12. Quick Reference for All AI Agents
+## 13. Quick Reference for All AI Agents
 
 When working on this project:
 
