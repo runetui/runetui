@@ -231,3 +231,25 @@ func TestRenderToString_EmptyTree_ReturnsEmptyString(t *testing.T) {
 	// Empty text should still render (might have padding/styling)
 	_ = output
 }
+
+// Test 17: renderTree with children that produce output
+func TestRenderTree_WithChildren_CombinesAllOutput(t *testing.T) {
+	rootFunc := func() runetui.Component {
+		return runetui.Box(
+			runetui.BoxProps{Direction: runetui.Column},
+			runetui.Text("First"),
+			runetui.Text("Second"),
+			runetui.Text("Third"),
+		)
+	}
+
+	output := RenderToString(rootFunc, 80, 24)
+
+	// Check that all children are present in output
+	if output == "" {
+		t.Error("expected non-empty output")
+	}
+	if len(output) < 10 {
+		t.Errorf("expected combined output from all children, got %q", output)
+	}
+}

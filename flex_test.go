@@ -540,3 +540,73 @@ func TestJustifyContent_JustifySpaceBetween_SingleChild_Row_DoesNothing(t *testi
 		t.Errorf("expected children[0].Layout.X=10 (unchanged), got %d", children[0].Layout.X)
 	}
 }
+
+func TestGetTotalHeight_WithEmptyChildren_ReturnsZero(t *testing.T) {
+	children := []*LayoutTree{}
+
+	result := getTotalHeight(children)
+
+	if result != 0 {
+		t.Errorf("expected 0, got %d", result)
+	}
+}
+
+func TestGetTotalHeight_WithSingleChild_ReturnsChildHeight(t *testing.T) {
+	children := []*LayoutTree{
+		{Layout: Layout{X: 0, Y: 10, Width: 50, Height: 20}},
+	}
+
+	result := getTotalHeight(children)
+
+	if result != 20 {
+		t.Errorf("expected 20 (10 + 20 - 10), got %d", result)
+	}
+}
+
+func TestGetTotalHeight_WithMultipleChildren_ReturnsSpan(t *testing.T) {
+	children := []*LayoutTree{
+		{Layout: Layout{X: 0, Y: 10, Width: 50, Height: 20}},
+		{Layout: Layout{X: 0, Y: 35, Width: 50, Height: 15}},
+	}
+
+	result := getTotalHeight(children)
+
+	if result != 40 {
+		t.Errorf("expected 40 (35 + 15 - 10), got %d", result)
+	}
+}
+
+func TestGetTotalWidth_WithEmptyChildren_ReturnsZero(t *testing.T) {
+	children := []*LayoutTree{}
+
+	result := getTotalWidth(children)
+
+	if result != 0 {
+		t.Errorf("expected 0, got %d", result)
+	}
+}
+
+func TestGetTotalWidth_WithSingleChild_ReturnsChildWidth(t *testing.T) {
+	children := []*LayoutTree{
+		{Layout: Layout{X: 10, Y: 0, Width: 20, Height: 50}},
+	}
+
+	result := getTotalWidth(children)
+
+	if result != 20 {
+		t.Errorf("expected 20 (10 + 20 - 10), got %d", result)
+	}
+}
+
+func TestGetTotalWidth_WithMultipleChildren_ReturnsSpan(t *testing.T) {
+	children := []*LayoutTree{
+		{Layout: Layout{X: 10, Y: 0, Width: 20, Height: 50}},
+		{Layout: Layout{X: 35, Y: 0, Width: 15, Height: 50}},
+	}
+
+	result := getTotalWidth(children)
+
+	if result != 40 {
+		t.Errorf("expected 40 (35 + 15 - 10), got %d", result)
+	}
+}
