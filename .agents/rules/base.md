@@ -180,17 +180,82 @@ golangci-lint run
 
 Run `make help` to discover available tasks.
 
-## 6. Pre-Commit (MANDATORY)
+## 6. Git Workflow & File Control
+
+### Pre-Commit Checklist (MANDATORY)
 
 Before EVERY commit:
-1. Run `make validate`
+1. Run `make validate` - must pass 100%
 2. Fix ALL errors
-3. Only commit when passing
+3. **Verify files to commit** - no binaries, no temp files
+4. Only commit when passing
 
 ❌ Never: Commit → find errors → fix
-✅ Always: Validate → fix → commit
+✅ Always: Validate → verify files → commit
 
-## 7. Language & Communication
+### Files to NEVER Commit
+
+**Binaries & Build Artifacts:**
+- ❌ Compiled executables (examples/hello, examples/streaming, *.exe, *.out)
+- ❌ Object files (*.o, *.so, *.dylib, *.dll)
+- ❌ Test binaries (*.test)
+- ❌ Build directories (dist/, build/)
+
+**Development Files:**
+- ❌ Coverage reports (coverage.html, coverage.out, *.coverprofile)
+- ❌ Editor files (.vscode/, .idea/, *.swp, .cursorindexingignore)
+- ❌ OS files (.DS_Store, Thumbs.db)
+- ❌ Temporary files (*~, *.tmp, *.bak)
+
+**Always Verify Before Commit:**
+
+```bash
+# Check what you're about to commit
+git status
+git diff --cached --stat
+
+# Look for binaries (should return nothing)
+git diff --cached --name-only | xargs file | grep -i executable
+
+# If you accidentally staged a binary:
+git reset HEAD path/to/binary
+rm path/to/binary
+```
+
+### Maintain .gitignore
+
+Keep `.gitignore` updated as the project grows:
+- Add patterns when new file types appear
+- Test that ignored files don't show in `git status`
+- Review `.gitignore` during code review
+
+## 7. Commit Messages
+
+Follow conventional commit style:
+
+```
+<type>: <short summary>
+
+<detailed description if needed>
+
+Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>
+```
+
+**Types:** feat, fix, docs, test, refactor, chore
+
+**Example:**
+```
+feat: implement Text component with Lipgloss styling
+
+- Add TextProps with color, bold, italic, underline support
+- Implement text wrapping (word, char, truncate modes)
+- Add text alignment (left, center, right)
+- 100% test coverage with 18 tests
+
+Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>
+```
+
+## 8. Language & Communication
 
 - **Conversation**: Any language (respond in user's language)
 - **Artifacts**: Always English (code, commits, docs, tests)
@@ -204,5 +269,7 @@ Before EVERY commit:
 4. 🔧 Use `make` - never call tools directly
 5. 📏 Small code - ≤20 lines per function
 6. ✅ Validate before every commit
-7. 🧪 Run tests after every change
-8. ❓ Ask when in doubt
+7. 🔍 Verify files before commit - no binaries, no temp files
+8. 🧪 Run tests after every change
+9. 📝 Keep .gitignore updated
+10. ❓ Ask when in doubt
