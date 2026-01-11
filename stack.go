@@ -21,17 +21,7 @@ func VStack(children ...Component) Component {
 
 // VStackWithProps creates a vertical stack with custom properties.
 func VStackWithProps(props StackProps, children ...Component) Component {
-	boxProps := BoxProps{
-		Direction:      Column,
-		Gap:            props.Gap,
-		Padding:        props.Padding,
-		AlignItems:     props.AlignItems,
-		JustifyContent: props.JustifyContent,
-		Width:          props.Width,
-		Height:         props.Height,
-		Key:            props.Key,
-	}
-	return Box(boxProps, children...)
+	return stackWithProps(Column, props, children...)
 }
 
 // HStack creates a horizontal stack with default properties.
@@ -44,8 +34,12 @@ func HStack(children ...Component) Component {
 
 // HStackWithProps creates a horizontal stack with custom properties.
 func HStackWithProps(props StackProps, children ...Component) Component {
+	return stackWithProps(Row, props, children...)
+}
+
+func stackWithProps(direction Direction, props StackProps, children ...Component) Component {
 	boxProps := BoxProps{
-		Direction:      Row,
+		Direction:      direction,
 		Gap:            props.Gap,
 		Padding:        props.Padding,
 		AlignItems:     props.AlignItems,
