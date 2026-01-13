@@ -2,7 +2,7 @@
 
 A declarative TUI framework for Go, inspired by Ink.
 
-> ⚠️ **Work in Progress**: RuneTUI is in early development. APIs will change.
+> ⚠️ **Early Access**: RuneTUI v0.1 is feature-complete and ready for early adopters. APIs may evolve based on feedback.
 
 ## Vision
 
@@ -45,21 +45,23 @@ func main() {
 
 ## Status
 
-✅ **Core features implemented:**
+✅ **v0.1 - Core features complete:**
 
-- [x] Core component system (Box, Text, Stack)
-- [x] Flexbox-inspired layout engine
-- [x] Bubble Tea integration
-- [x] Static zones for efficient log rendering
-- [x] Testing utilities with snapshot support
-- [x] Example applications
+- [x] Core component system (Box, Text, VStack, HStack, Spacer, Static)
+- [x] Flexbox-inspired layout engine (flex-grow, flex-shrink, alignment, justification)
+- [x] Bubble Tea integration with adapter layer
+- [x] Static zones for efficient log rendering (no flicker)
+- [x] Testing utilities (RenderToString, snapshot testing, TestApp)
+- [x] Example applications with tests
+- [x] State management patterns documented
+- [x] 229 tests with ~100% coverage
 
-🚧 **In progress:**
+🚧 **Future (post-v0.1):**
 
-- [ ] State management patterns
-- [ ] More component types
-- [ ] Enhanced documentation
-- [ ] Performance optimizations
+- [ ] More component types (Input, List, Table, Spinner)
+- [ ] Performance optimizations (memoization, virtual rendering)
+- [ ] Advanced layout features (wrapping, scrolling)
+- [ ] Theming system
 
 ## Features
 
@@ -69,6 +71,14 @@ func main() {
 - **Rich Text Styling**: Colors, bold, italic, alignment, and text wrapping
 - **Testing Support**: Snapshot testing and component rendering utilities
 - **Bubble Tea Integration**: Built on the proven Elm Architecture pattern
+
+### Available Components
+
+- **Text** - Rich text with styling (color, bold, italic, underline, wrapping, alignment)
+- **Box** - Flexible container with borders, padding, margin, and flex properties
+- **VStack / HStack** - Convenient vertical/horizontal stack layouts
+- **Spacer** - Fixed or flexible spacing between components
+- **Static** - Accumulating zone for logs and streaming output (efficient, no re-render)
 
 ## Why RuneTUI?
 
@@ -86,12 +96,32 @@ Perfect for:
 - [Bubble Tea](https://github.com/charmbracelet/bubbletea) - The Elm Architecture for Go
 - [Ratatui](https://ratatui.rs/) - Rust TUI framework
 
-## Testing Examples
+## Testing
+
+RuneTUI includes comprehensive testing utilities:
+
+```go
+// Render components without a terminal
+output := testing.RenderToString(rootFunc, 80, 24)
+
+// Snapshot testing with golden files
+testing.AssertSnapshot(t, "my-component", output)
+
+// Interactive test wrapper
+app := testing.NewTestApp(rootFunc)
+app.Resize(100, 30)
+view := app.View()
+```
+
+### Testing Examples
 
 Examples in the `examples/` directory include tests that verify they render correctly:
 
 ```bash
-# Run example tests
+# Run all tests (including examples)
+make test
+
+# Run only example tests
 make test-examples
 
 # Update snapshots when output changes intentionally
@@ -102,7 +132,7 @@ This ensures examples stay working and serve as living documentation.
 
 ## Contributing
 
-RuneTUI is in early development. Contributions, ideas, and feedback are welcome! Please open an issue to discuss major changes.
+RuneTUI is approaching v0.1 release. Contributions, ideas, and feedback are welcome! Please open an issue to discuss major changes before submitting PRs.
 
 ## License
 
