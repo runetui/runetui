@@ -132,7 +132,9 @@ This ensures examples stay working and serve as living documentation.
 
 ## Contributing
 
-RuneTUI is approaching v0.1 release. Contributions, ideas, and feedback are welcome! Please open an issue to discuss major changes before submitting PRs.
+RuneTUI v0.1 is now released! Contributions, ideas, and feedback are welcome! Please open an issue to discuss major changes before submitting PRs.
+
+See [CHANGELOG.md](CHANGELOG.md) for release history.
 
 ## License
 
