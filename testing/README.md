@@ -252,20 +252,121 @@ want:
 
 **Fix the code**, don't update the golden file (unless the change is intentional).
 
-## Next Steps
+## Assertion Helpers (Phase 2)
 
-### Phase 2: Assertion Helpers (Coming Soon)
+For non-critical tests where exact output isn't important, use assertion helpers.
+These helpers verify **properties** of the output without being coupled to exact ANSI codes.
 
-For non-critical tests, we'll add helpers:
+### Available Helpers
+
+Import from the testing package:
 
 ```go
-// Phase 2 helpers (not yet implemented)
-assertHasANSICodes(t, got)
-assertContainsText(t, got, "Hello")
-assertWidth(t, got, 10)
+import runetesting "github.com/runetui/runetui/testing"
 ```
 
-Use golden files for now. We'll migrate some tests to helpers in Phase 2.
+#### `AssertHasANSICodes(t, output)`
+
+Verifies that output contains ANSI escape sequences (styled).
+
+```go
+runetesting.AssertHasANSICodes(t, got)  // Fails if no ANSI codes present
+```
+
+#### `AssertContainsText(t, output, text)`
+
+Verifies that visible text content is present, ignoring ANSI codes.
+
+```go
+runetesting.AssertContainsText(t, got, "Hello")  // Finds "Hello" even with styling
+```
+
+#### `AssertWidth(t, output, expected)`
+
+Verifies the visible width of output, excluding ANSI codes.
+
+```go
+runetesting.AssertWidth(t, got, 10)  // Checks visible width is 10
+```
+
+#### `AssertHeight(t, output, expected)`
+
+Verifies the number of lines in output.
+
+```go
+runetesting.AssertHeight(t, got, 3)  // Checks output has 3 lines
+```
+
+#### `AssertNotEmpty(t, output)`
+
+Verifies output has visible content (not just whitespace or ANSI codes).
+
+```go
+runetesting.AssertNotEmpty(t, got)  // Fails if output is empty/whitespace
+```
+
+### When to Use Helpers vs Golden Files
+
+| Scenario | Use |
+|----------|-----|
+| Verify exact bold rendering | Golden file |
+| Verify output has styling | `AssertHasANSICodes` |
+| Verify text content preserved | `AssertContainsText` |
+| Verify layout dimensions | `AssertWidth`, `AssertHeight` |
+| Sanity check output exists | `AssertNotEmpty` |
+| Test style combinations | Helpers (table-driven) |
+| Test critical single styles | Golden file |
+
+### Table-Driven Tests with Helpers
+
+For testing many variations, use table-driven tests with helpers:
+
+```go
+func TestText_StyleCombinations_ProducesValidOutput(t *testing.T) {
+    tests := []struct {
+        name    string
+        props   TextProps
+        content string
+    }{
+        {"bold_only", TextProps{Bold: true}, "Hello"},
+        {"italic_only", TextProps{Italic: true}, "Hello"},
+        {"bold_italic", TextProps{Bold: true, Italic: true}, "Hello"},
+        {"color_only", TextProps{Color: "#FF0000"}, "Red"},
+        {"all_styles", TextProps{Bold: true, Italic: true, Underline: true}, "Test"},
+    }
+
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            text := Text(tt.content, tt.props)
+            layout := Layout{Width: 20, Height: 1}
+
+            got := text.Render(layout)
+
+            // Verify properties, not exact output
+            runetesting.AssertHasANSICodes(t, got)
+            runetesting.AssertContainsText(t, got, tt.content)
+            runetesting.AssertNotEmpty(t, got)
+        })
+    }
+}
+```
+
+### Benefits of Helpers
+
+1. **Less Brittle** - Don't break when Lipgloss changes ANSI codes
+2. **More Readable** - Clear intent from helper names
+3. **Faster to Write** - No golden files to manage
+4. **Good for Variations** - Test many combinations quickly
+
+### When to Add New Golden Files
+
+Only add golden files when:
+
+1. You need to verify **exact** output (specific ANSI codes)
+2. The test covers a **critical** styling behavior
+3. You want to catch **any** change in output
+
+For other cases, use assertion helpers.
 
 ## References
 
@@ -275,5 +376,8 @@ Use golden files for now. We'll migrate some tests to helpers in Phase 2.
 
 ---
 
-**Status:** Phase 1 Complete ✅
-**Next:** Phase 2 - Assertion Helpers
+**Status:** Phase 2 Complete ✅
+**Implemented:**
+- Golden file infrastructure (Phase 1)
+- Assertion helpers: `AssertHasANSICodes`, `AssertContainsText`, `AssertWidth`, `AssertHeight`, `AssertNotEmpty` (Phase 2)
+- Table-driven tests for style combinations (Phase 2)

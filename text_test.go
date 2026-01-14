@@ -271,6 +271,144 @@ func TestTextProps_ImplementsPropsInterface(t *testing.T) {
 	var _ Props = props
 }
 
+// Table-driven tests for style combinations using assertion helpers
+// These tests verify that style combinations produce valid output properties
+// without being coupled to exact ANSI codes.
+
+func TestText_StyleCombinations_ProducesValidOutput(t *testing.T) {
+	tests := []struct {
+		name    string
+		props   TextProps
+		content string
+	}{
+		{
+			name:    "bold_only",
+			props:   TextProps{Bold: true},
+			content: "Hello",
+		},
+		{
+			name:    "italic_only",
+			props:   TextProps{Italic: true},
+			content: "Hello",
+		},
+		{
+			name:    "underline_only",
+			props:   TextProps{Underline: true},
+			content: "Hello",
+		},
+		{
+			name:    "strikethrough_only",
+			props:   TextProps{Strikethrough: true},
+			content: "Hello",
+		},
+		{
+			name:    "bold_italic",
+			props:   TextProps{Bold: true, Italic: true},
+			content: "Hello",
+		},
+		{
+			name:    "bold_underline",
+			props:   TextProps{Bold: true, Underline: true},
+			content: "Hello",
+		},
+		{
+			name:    "italic_underline_strikethrough",
+			props:   TextProps{Italic: true, Underline: true, Strikethrough: true},
+			content: "Test",
+		},
+		{
+			name:    "all_styles",
+			props:   TextProps{Bold: true, Italic: true, Underline: true, Strikethrough: true},
+			content: "Test",
+		},
+		{
+			name:    "color_only",
+			props:   TextProps{Color: "#FF0000"},
+			content: "Red",
+		},
+		{
+			name:    "background_only",
+			props:   TextProps{Background: "#00FF00"},
+			content: "Green",
+		},
+		{
+			name:    "color_with_bold",
+			props:   TextProps{Bold: true, Color: "#FF0000"},
+			content: "Bold Red",
+		},
+		{
+			name:    "background_with_italic",
+			props:   TextProps{Italic: true, Background: "#0000FF"},
+			content: "Italic Blue",
+		},
+		{
+			name:    "full_combination",
+			props:   TextProps{Bold: true, Italic: true, Color: "#FF0000", Background: "#0000FF"},
+			content: "Full",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			text := Text(tt.content, tt.props)
+			layout := Layout{X: 0, Y: 0, Width: 20, Height: 1}
+
+			got := text.Render(layout)
+
+			AssertHasANSICodes(t, got)
+			AssertContainsText(t, got, tt.content)
+			AssertNotEmpty(t, got)
+		})
+	}
+}
+
+func TestText_AlignmentVariations_ProducesValidOutput(t *testing.T) {
+	tests := []struct {
+		name    string
+		align   TextAlign
+		content string
+	}{
+		{"left", TextAlignLeft, "Hi"},
+		{"center", TextAlignCenter, "Hi"},
+		{"right", TextAlignRight, "Hi"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			text := Text(tt.content, TextProps{Align: tt.align})
+			layout := Layout{X: 0, Y: 0, Width: 10, Height: 1}
+
+			got := text.Render(layout)
+
+			AssertContainsText(t, got, tt.content)
+			AssertWidth(t, got, 10)
+		})
+	}
+}
+
+func TestText_WrapModes_ProducesValidOutput(t *testing.T) {
+	tests := []struct {
+		name        string
+		wrap        WrapMode
+		content     string
+		expectLines int
+	}{
+		{"word_wrap", WrapWord, "Hello World", 3},
+		{"truncate", WrapTruncate, "Hello World", 1},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			text := Text(tt.content, TextProps{Wrap: tt.wrap})
+			size := text.Measure(5, 10)
+
+			if size.Height != tt.expectLines {
+				t.Errorf("expected %d lines, got %d", tt.expectLines, size.Height)
+			}
+		})
+	}
+}
+
 // Golden file helpers for behavioral testing
 
 func loadGoldenFile(t *testing.T, name string) string {
