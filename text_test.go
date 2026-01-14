@@ -1,9 +1,14 @@
 package runetui
 
 import (
+	"flag"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
+
+var updateGolden = flag.Bool("update", false, "update golden files")
 
 func TestText_WithBasicContent_RendersPlainText(t *testing.T) {
 	text := Text("Hello")
@@ -28,15 +33,18 @@ func TestText_WithForegroundColor_AppliesColor(t *testing.T) {
 
 	got := text.Render(layout)
 
-	// ANSI escape codes should be present for colored text
-	if !strings.Contains(got, "\x1b[") {
-		t.Errorf("Expected ANSI color codes in output, got: %q", got)
-	}
+	// Use golden file to verify actual red foreground color rendering
+	compareWithGolden(t, "text_foreground_red", got)
+}
 
-	// Should still contain the actual text
-	if !strings.Contains(got, "Hello") {
-		t.Errorf("Expected text content 'Hello' in output, got: %q", got)
-	}
+func TestText_WithBlueForeground_AppliesBlueColor(t *testing.T) {
+	text := Text("Hello", TextProps{Color: "#0000FF"})
+	layout := Layout{X: 0, Y: 0, Width: 10, Height: 1}
+
+	got := text.Render(layout)
+
+	// Use golden file to verify actual blue foreground color rendering
+	compareWithGolden(t, "text_foreground_blue", got)
 }
 
 func TestText_WithBackgroundColor_AppliesBackground(t *testing.T) {
@@ -45,15 +53,8 @@ func TestText_WithBackgroundColor_AppliesBackground(t *testing.T) {
 
 	got := text.Render(layout)
 
-	// ANSI escape codes should be present for colored text
-	if !strings.Contains(got, "\x1b[") {
-		t.Errorf("Expected ANSI color codes in output, got: %q", got)
-	}
-
-	// Should still contain the actual text
-	if !strings.Contains(got, "Hello") {
-		t.Errorf("Expected text content 'Hello' in output, got: %q", got)
-	}
+	// Use golden file to verify actual green background color rendering
+	compareWithGolden(t, "text_background_green", got)
 }
 
 func TestText_WithBold_AppliesBoldStyle(t *testing.T) {
@@ -62,14 +63,8 @@ func TestText_WithBold_AppliesBoldStyle(t *testing.T) {
 
 	got := text.Render(layout)
 
-	// ANSI bold code is typically \x1b[1m
-	if !strings.Contains(got, "\x1b[1m") && !strings.Contains(got, "\x1b[") {
-		t.Errorf("Expected ANSI bold codes in output, got: %q", got)
-	}
-
-	if !strings.Contains(got, "Hello") {
-		t.Errorf("Expected text content 'Hello' in output, got: %q", got)
-	}
+	// Use golden file to verify actual bold rendering behavior
+	compareWithGolden(t, "text_bold", got)
 }
 
 func TestText_WithItalic_AppliesItalicStyle(t *testing.T) {
@@ -78,14 +73,8 @@ func TestText_WithItalic_AppliesItalicStyle(t *testing.T) {
 
 	got := text.Render(layout)
 
-	// ANSI italic code is typically \x1b[3m
-	if !strings.Contains(got, "\x1b[3m") && !strings.Contains(got, "\x1b[") {
-		t.Errorf("Expected ANSI italic codes in output, got: %q", got)
-	}
-
-	if !strings.Contains(got, "Hello") {
-		t.Errorf("Expected text content 'Hello' in output, got: %q", got)
-	}
+	// Use golden file to verify actual italic rendering behavior
+	compareWithGolden(t, "text_italic", got)
 }
 
 func TestText_WithUnderline_AppliesUnderlineStyle(t *testing.T) {
@@ -94,15 +83,8 @@ func TestText_WithUnderline_AppliesUnderlineStyle(t *testing.T) {
 
 	got := text.Render(layout)
 
-	// ANSI underline code is typically \x1b[4m
-	if !strings.Contains(got, "\x1b[4") {
-		t.Errorf("Expected ANSI underline codes in output, got: %q", got)
-	}
-
-	// Text should contain all characters (even if wrapped in codes)
-	if !strings.Contains(got, "H") || !strings.Contains(got, "e") || !strings.Contains(got, "l") || !strings.Contains(got, "o") {
-		t.Errorf("Expected text content 'Hello' in output, got: %q", got)
-	}
+	// Use golden file to verify actual underline rendering behavior
+	compareWithGolden(t, "text_underline", got)
 }
 
 func TestText_WithStrikethrough_AppliesStrikethroughStyle(t *testing.T) {
@@ -111,15 +93,38 @@ func TestText_WithStrikethrough_AppliesStrikethroughStyle(t *testing.T) {
 
 	got := text.Render(layout)
 
-	// ANSI strikethrough code is typically \x1b[9m
-	if !strings.Contains(got, "\x1b[9m") {
-		t.Errorf("Expected ANSI strikethrough codes in output, got: %q", got)
-	}
+	// Use golden file to verify actual strikethrough rendering behavior
+	compareWithGolden(t, "text_strikethrough", got)
+}
 
-	// Text should contain all characters (even if wrapped in codes)
-	if !strings.Contains(got, "H") || !strings.Contains(got, "e") || !strings.Contains(got, "l") || !strings.Contains(got, "o") {
-		t.Errorf("Expected text content 'Hello' in output, got: %q", got)
-	}
+func TestText_WithBoldAndRedColor_AppliesBothStyles(t *testing.T) {
+	text := Text("Hello", TextProps{Bold: true, Color: "#FF0000"})
+	layout := Layout{X: 0, Y: 0, Width: 10, Height: 1}
+
+	got := text.Render(layout)
+
+	// Use golden file to verify bold + red color combination
+	compareWithGolden(t, "text_bold_red", got)
+}
+
+func TestText_WithItalicAndUnderline_AppliesBothStyles(t *testing.T) {
+	text := Text("Hello", TextProps{Italic: true, Underline: true})
+	layout := Layout{X: 0, Y: 0, Width: 10, Height: 1}
+
+	got := text.Render(layout)
+
+	// Use golden file to verify italic + underline combination
+	compareWithGolden(t, "text_italic_underline", got)
+}
+
+func TestText_WithBoldAndBackground_AppliesBothStyles(t *testing.T) {
+	text := Text("Hello", TextProps{Bold: true, Background: "#0000FF"})
+	layout := Layout{X: 0, Y: 0, Width: 10, Height: 1}
+
+	got := text.Render(layout)
+
+	// Use golden file to verify bold + background color combination
+	compareWithGolden(t, "text_bold_background", got)
 }
 
 func TestText_WrapWord_WrapsAtWordBoundaries(t *testing.T) {
@@ -264,4 +269,56 @@ func TestText_Key_ReturnsEmptyWhenNotSet(t *testing.T) {
 func TestTextProps_ImplementsPropsInterface(t *testing.T) {
 	props := TextProps{Content: "test"}
 	var _ Props = props
+}
+
+// Golden file helpers for behavioral testing
+
+func loadGoldenFile(t *testing.T, name string) string {
+	t.Helper()
+	path := filepath.Join("testdata", name+".golden")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("Failed to read golden file %s: %v", name, err)
+	}
+	return string(data)
+}
+
+func updateGoldenFile(t *testing.T, name, content string) {
+	t.Helper()
+	path := filepath.Join("testdata", name+".golden")
+
+	// Ensure directory exists
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		t.Fatalf("Failed to create testdata directory: %v", err)
+	}
+
+	// Write golden file
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		t.Fatalf("Failed to write golden file %s: %v", name, err)
+	}
+}
+
+func compareWithGolden(t *testing.T, name, got string) {
+	t.Helper()
+
+	if *updateGolden {
+		updateGoldenFile(t, name, got)
+		t.Logf("Updated golden file: %s", name)
+		return
+	}
+
+	// Check if golden file exists
+	path := filepath.Join("testdata", name+".golden")
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		// Create golden file on first run
+		updateGoldenFile(t, name, got)
+		t.Logf("Created golden file: %s", name)
+		return
+	}
+
+	want := loadGoldenFile(t, name)
+	if got != want {
+		t.Errorf("Output doesn't match golden file %s:\ngot:\n%q\n\nwant:\n%q\n\nRun 'go test -update' to update golden files", name, got, want)
+	}
 }
