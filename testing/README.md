@@ -80,7 +80,9 @@ Use golden files for **critical behavioral tests**:
 4. **Layout dimensions** - Width, height, padding behavior
 5. **Text wrapping** - Word wrap, character wrap, truncate
 
-**Example:**
+**Examples:**
+
+Text component:
 ```go
 func TestText_WithBold_AppliesBoldStyle(t *testing.T) {
     text := Text("Hello", TextProps{Bold: true})
@@ -88,6 +90,20 @@ func TestText_WithBold_AppliesBoldStyle(t *testing.T) {
 
     got := text.Render(layout)
     compareWithGolden(t, "text_bold", got)  // ✅ Verifies exact bold output
+}
+```
+
+Box component:
+```go
+func TestBox_Render_WithBorderAppliesLipgloss(t *testing.T) {
+    child := &mockComponent{key: "child", content: "Text"}
+    props := BoxProps{Key: "box", Border: BorderSingle}
+    box := Box(props, child)
+
+    layout := Layout{X: 0, Y: 0, Width: 20, Height: 10}
+    got := box.Render(layout)
+
+    compareWithGoldenBox(t, "box_border_single", got)  // ✅ Verifies exact border output
 }
 ```
 
@@ -138,6 +154,8 @@ Load golden file contents (for advanced testing).
 
 ## Current Golden Files
 
+### Text Component
+
 **Basic Styles (4):**
 - `text_bold.golden` - Bold text
 - `text_italic.golden` - Italic text
@@ -153,6 +171,20 @@ Load golden file contents (for advanced testing).
 - `text_bold_red.golden` - Bold + red color
 - `text_italic_underline.golden` - Italic + underline
 - `text_bold_background.golden` - Bold + blue background
+
+### Box Component
+
+**Border Styles (3):**
+- `box_border_single.golden` - Single line border
+- `box_border_double.golden` - Double line border
+- `box_border_rounded.golden` - Rounded corners border
+
+**Colors (2):**
+- `box_background_red.golden` - Red background (#FF0000)
+- `box_border_color_green.golden` - Green border color (#00FF00)
+
+**Combinations (1):**
+- `box_border_background.golden` - Border + background combination
 
 ## Best Practices
 
@@ -321,6 +353,7 @@ runetesting.AssertNotEmpty(t, got)  // Fails if output is empty/whitespace
 
 For testing many variations, use table-driven tests with helpers:
 
+**Text component example:**
 ```go
 func TestText_StyleCombinations_ProducesValidOutput(t *testing.T) {
     tests := []struct {
@@ -351,6 +384,40 @@ func TestText_StyleCombinations_ProducesValidOutput(t *testing.T) {
 }
 ```
 
+**Box component example:**
+```go
+func TestBox_StyleCombinations_ProducesValidOutput(t *testing.T) {
+    tests := []struct {
+        name  string
+        props BoxProps
+    }{
+        {"border_only", BoxProps{Key: "box", Border: BorderSingle}},
+        {"background_only", BoxProps{Key: "box", Background: "#FF0000"}},
+        {"border_and_background", BoxProps{Key: "box", Border: BorderSingle, Background: "#00FF00"}},
+        {"all_styles", BoxProps{Key: "box", Border: BorderRounded, BorderColor: "#FF00FF", Background: "#FFFF00"}},
+    }
+
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            child := &mockComponent{key: "child", content: "Test"}
+            box := Box(tt.props, child)
+            layout := Layout{Width: 20, Height: 10}
+
+            got := box.Render(layout)
+
+            // Verify properties, not exact output
+            AssertContainsText(t, got, "Test")
+            AssertNotEmpty(t, got)
+
+            // Verify ANSI codes when color is applied
+            if tt.props.Background != "" || tt.props.BorderColor != "" {
+                AssertHasANSICodes(t, got)
+            }
+        })
+    }
+}
+```
+
 ### Benefits of Helpers
 
 1. **Less Brittle** - Don't break when Lipgloss changes ANSI codes
@@ -376,8 +443,11 @@ For other cases, use assertion helpers.
 
 ---
 
-**Status:** Phase 2 Complete ✅
+**Status:** Phase 2 Complete + Box Component Extended ✅
+
 **Implemented:**
 - Golden file infrastructure (Phase 1)
 - Assertion helpers: `AssertHasANSICodes`, `AssertContainsText`, `AssertWidth`, `AssertHeight`, `AssertNotEmpty` (Phase 2)
 - Table-driven tests for style combinations (Phase 2)
+- Box component golden files for borders, colors, and combinations
+- Box component table-driven tests using assertion helpers

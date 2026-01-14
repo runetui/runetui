@@ -1,6 +1,10 @@
 package runetui
 
-import "testing"
+import (
+	"os"
+	"path/filepath"
+	"testing"
+)
 
 func TestBox_EmptyBox_CanBeCreated(t *testing.T) {
 	props := BoxProps{
@@ -195,16 +199,10 @@ func TestBox_Render_WithBorderAppliesLipgloss(t *testing.T) {
 	box := Box(props, child)
 
 	layout := Layout{X: 0, Y: 0, Width: 20, Height: 10}
-	output := box.Render(layout)
+	got := box.Render(layout)
 
-	// With a border, output should be longer than just "Text"
-	if len(output) <= len("Text") {
-		t.Error("Expected border to increase output length")
-	}
-	// Border should contain the original content
-	if !contains(output, "Text") {
-		t.Error("Expected output to contain original content")
-	}
+	// Use golden file to verify actual single border rendering
+	compareWithGoldenBox(t, "box_border_single", got)
 }
 
 func TestBox_Render_WithBackgroundAppliesColor(t *testing.T) {
@@ -217,16 +215,10 @@ func TestBox_Render_WithBackgroundAppliesColor(t *testing.T) {
 	box := Box(props, child)
 
 	layout := Layout{X: 0, Y: 0, Width: 20, Height: 10}
-	output := box.Render(layout)
+	got := box.Render(layout)
 
-	// Background should contain the original content
-	if !contains(output, "Text") {
-		t.Error("Expected output to contain original content")
-	}
-	// Should include ANSI color codes (output length will be larger due to escape codes)
-	if len(output) < len("Text") {
-		t.Error("Expected background color to add escape codes")
-	}
+	// Use golden file to verify actual red background rendering
+	compareWithGoldenBox(t, "box_background_red", got)
 }
 
 func TestBox_Render_WithDoubleBorder(t *testing.T) {
@@ -239,11 +231,10 @@ func TestBox_Render_WithDoubleBorder(t *testing.T) {
 	box := Box(props, child)
 
 	layout := Layout{X: 0, Y: 0, Width: 20, Height: 10}
-	output := box.Render(layout)
+	got := box.Render(layout)
 
-	if !contains(output, "X") {
-		t.Error("Expected output to contain original content")
-	}
+	// Use golden file to verify actual double border rendering
+	compareWithGoldenBox(t, "box_border_double", got)
 }
 
 func TestBox_Render_WithRoundedBorder(t *testing.T) {
@@ -256,11 +247,10 @@ func TestBox_Render_WithRoundedBorder(t *testing.T) {
 	box := Box(props, child)
 
 	layout := Layout{X: 0, Y: 0, Width: 20, Height: 10}
-	output := box.Render(layout)
+	got := box.Render(layout)
 
-	if !contains(output, "Y") {
-		t.Error("Expected output to contain original content")
-	}
+	// Use golden file to verify actual rounded border rendering
+	compareWithGoldenBox(t, "box_border_rounded", got)
 }
 
 func TestBox_Render_WithBorderColor(t *testing.T) {
@@ -274,20 +264,178 @@ func TestBox_Render_WithBorderColor(t *testing.T) {
 	box := Box(props, child)
 
 	layout := Layout{X: 0, Y: 0, Width: 20, Height: 10}
-	output := box.Render(layout)
+	got := box.Render(layout)
 
-	if !contains(output, "Z") {
-		t.Error("Expected output to contain original content")
+	// Use golden file to verify actual green border color rendering
+	compareWithGoldenBox(t, "box_border_color_green", got)
+}
+
+func TestBox_Render_WithBorderAndBackground(t *testing.T) {
+	child := &mockComponent{key: "child", content: "Combo"}
+
+	props := BoxProps{
+		Key:         "box",
+		Border:      BorderSingle,
+		BorderColor: "#0000FF",
+		Background:  "#FFFF00",
+	}
+	box := Box(props, child)
+
+	layout := Layout{X: 0, Y: 0, Width: 20, Height: 10}
+	got := box.Render(layout)
+
+	// Use golden file to verify border + background combination
+	compareWithGoldenBox(t, "box_border_background", got)
+}
+
+func TestBox_StyleCombinations_ProducesValidOutput(t *testing.T) {
+	tests := []struct {
+		name       string
+		props      BoxProps
+		childCount int
+	}{
+		{
+			name:       "border_only",
+			props:      BoxProps{Key: "box", Border: BorderSingle},
+			childCount: 1,
+		},
+		{
+			name:       "background_only",
+			props:      BoxProps{Key: "box", Background: "#FF0000"},
+			childCount: 1,
+		},
+		{
+			name:       "border_and_background",
+			props:      BoxProps{Key: "box", Border: BorderSingle, Background: "#00FF00"},
+			childCount: 1,
+		},
+		{
+			name:       "border_with_color",
+			props:      BoxProps{Key: "box", Border: BorderDouble, BorderColor: "#0000FF"},
+			childCount: 1,
+		},
+		{
+			name:       "all_borders",
+			props:      BoxProps{Key: "box", Border: BorderRounded, BorderColor: "#FF00FF", Background: "#FFFF00"},
+			childCount: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			child := &mockComponent{key: "child", content: "Test"}
+			box := Box(tt.props, child)
+			layout := Layout{X: 0, Y: 0, Width: 20, Height: 10}
+
+			got := box.Render(layout)
+
+			// Verify properties using assertion helpers
+			AssertContainsText(t, got, "Test")
+			AssertNotEmpty(t, got)
+
+			// Verify ANSI codes present when color is applied (background or border color)
+			if tt.props.Background != "" || tt.props.BorderColor != "" {
+				AssertHasANSICodes(t, got)
+			}
+		})
 	}
 }
 
-func contains(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
+func TestBox_DirectionVariations_ProducesValidOutput(t *testing.T) {
+	tests := []struct {
+		name      string
+		direction Direction
+		expected  string
+	}{
+		{
+			name:      "row_direction",
+			direction: Row,
+			expected:  "AB",
+		},
+		{
+			name:      "column_direction",
+			direction: Column,
+			expected:  "A\nB",
+		},
 	}
-	return false
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			child1 := &mockComponent{key: "child1", content: "A"}
+			child2 := &mockComponent{key: "child2", content: "B"}
+
+			props := BoxProps{
+				Key:       "box",
+				Direction: tt.direction,
+			}
+			box := Box(props, child1, child2)
+			layout := Layout{X: 0, Y: 0, Width: 20, Height: 10}
+
+			got := box.Render(layout)
+
+			// Verify expected layout
+			if got != tt.expected {
+				t.Errorf("Expected %q, got %q", tt.expected, got)
+			}
+
+			// Verify properties
+			AssertContainsText(t, got, "A")
+			AssertContainsText(t, got, "B")
+			AssertNotEmpty(t, got)
+		})
+	}
+}
+
+// Golden file helpers for behavioral testing
+
+func loadGoldenFileBox(t *testing.T, name string) string {
+	t.Helper()
+	path := filepath.Join("testdata", name+".golden")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("Failed to read golden file %s: %v", name, err)
+	}
+	return string(data)
+}
+
+func updateGoldenFileBox(t *testing.T, name, content string) {
+	t.Helper()
+	path := filepath.Join("testdata", name+".golden")
+
+	// Ensure directory exists
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		t.Fatalf("Failed to create testdata directory: %v", err)
+	}
+
+	// Write golden file
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		t.Fatalf("Failed to write golden file %s: %v", name, err)
+	}
+}
+
+func compareWithGoldenBox(t *testing.T, name, got string) {
+	t.Helper()
+
+	if *updateGolden {
+		updateGoldenFileBox(t, name, got)
+		t.Logf("Updated golden file: %s", name)
+		return
+	}
+
+	// Check if golden file exists
+	path := filepath.Join("testdata", name+".golden")
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		// Create golden file on first run
+		updateGoldenFileBox(t, name, got)
+		t.Logf("Created golden file: %s", name)
+		return
+	}
+
+	want := loadGoldenFileBox(t, name)
+	if got != want {
+		t.Errorf("Output doesn't match golden file %s:\ngot:\n%q\n\nwant:\n%q\n\nRun 'go test -update' to update golden files", name, got, want)
+	}
 }
 
 // mockComponent is a simple Component implementation for testing.
