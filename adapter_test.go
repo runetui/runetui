@@ -277,3 +277,157 @@ func TestNew_WithOptions_AppliesOptions(t *testing.T) {
 		t.Error("expected option to be called")
 	}
 }
+
+func TestApp_WithUpdate_ReceivesMessages(t *testing.T) {
+	var receivedMsg tea.Msg
+	updateFunc := func(msg tea.Msg) tea.Cmd {
+		receivedMsg = msg
+		return nil
+	}
+
+	rootFunc := func() Component {
+		return Text("Hello")
+	}
+
+	app := New(rootFunc, WithUpdate(updateFunc))
+	m := app.createModel().(*model)
+
+	// Send a key message
+	testMsg := tea.KeyMsg{Type: tea.KeyEnter}
+	m.Update(testMsg)
+
+	if receivedMsg == nil {
+		t.Fatal("expected Update function to receive message")
+	}
+	keyMsg, ok := receivedMsg.(tea.KeyMsg)
+	if !ok {
+		t.Fatalf("expected tea.KeyMsg, got %T", receivedMsg)
+	}
+	if keyMsg.Type != tea.KeyEnter {
+		t.Errorf("expected KeyEnter, got %v", keyMsg.Type)
+	}
+}
+
+func TestApp_WithUpdate_ReturnsUserCommand(t *testing.T) {
+	customCmd := func() tea.Msg {
+		return "custom message"
+	}
+	updateFunc := func(msg tea.Msg) tea.Cmd {
+		return customCmd
+	}
+
+	rootFunc := func() Component {
+		return Text("Hello")
+	}
+
+	app := New(rootFunc, WithUpdate(updateFunc))
+	m := app.createModel().(*model)
+
+	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+
+	if cmd == nil {
+		t.Fatal("expected Update to return user command")
+	}
+	// Execute the command and verify it returns the expected message
+	result := cmd()
+	if result != "custom message" {
+		t.Errorf("expected 'custom message', got %v", result)
+	}
+}
+
+func TestApp_WithInit_ReturnsInitCommand(t *testing.T) {
+	initCmd := func() tea.Msg {
+		return "init message"
+	}
+	initFunc := func() tea.Cmd {
+		return initCmd
+	}
+
+	rootFunc := func() Component {
+		return Text("Hello")
+	}
+
+	app := New(rootFunc, WithInit(initFunc))
+	m := app.createModel()
+
+	cmd := m.Init()
+
+	if cmd == nil {
+		t.Fatal("expected Init to return user command")
+	}
+	result := cmd()
+	if result != "init message" {
+		t.Errorf("expected 'init message', got %v", result)
+	}
+}
+
+func TestApp_WithUpdate_ReceivesWindowSizeMsg(t *testing.T) {
+	var receivedMsg tea.Msg
+	updateFunc := func(msg tea.Msg) tea.Cmd {
+		receivedMsg = msg
+		return nil
+	}
+
+	rootFunc := func() Component {
+		return Text("Hello")
+	}
+
+	app := New(rootFunc, WithUpdate(updateFunc))
+	m := app.createModel().(*model)
+
+	sizeMsg := tea.WindowSizeMsg{Width: 120, Height: 40}
+	m.Update(sizeMsg)
+
+	if receivedMsg == nil {
+		t.Fatal("expected Update to receive WindowSizeMsg")
+	}
+	wsMsg, ok := receivedMsg.(tea.WindowSizeMsg)
+	if !ok {
+		t.Fatalf("expected tea.WindowSizeMsg, got %T", receivedMsg)
+	}
+	if wsMsg.Width != 120 || wsMsg.Height != 40 {
+		t.Errorf("expected 120x40, got %dx%d", wsMsg.Width, wsMsg.Height)
+	}
+}
+
+func TestApp_WithUpdate_CtrlCStillQuits(t *testing.T) {
+	updateFunc := func(msg tea.Msg) tea.Cmd {
+		return nil
+	}
+
+	rootFunc := func() Component {
+		return Text("Hello")
+	}
+
+	app := New(rootFunc, WithUpdate(updateFunc))
+	m := app.createModel().(*model)
+
+	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyCtrlC})
+
+	if cmd == nil {
+		t.Fatal("expected Ctrl+C to return quit command")
+	}
+}
+
+func TestApp_WithoutUpdateOrInit_WorksAsUsual(t *testing.T) {
+	rootFunc := func() Component {
+		return Text("Hello")
+	}
+
+	app := New(rootFunc)
+	m := app.createModel()
+
+	// Init should return nil
+	if cmd := m.Init(); cmd != nil {
+		t.Errorf("expected Init() to return nil without WithInit, got %v", cmd)
+	}
+
+	// Update should work normally
+	updatedModel, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	if updatedModel == nil {
+		t.Error("expected Update to return model")
+	}
+	if cmd != nil {
+		t.Errorf("expected Update to return nil cmd for non-quit key, got %v", cmd)
+	}
+}

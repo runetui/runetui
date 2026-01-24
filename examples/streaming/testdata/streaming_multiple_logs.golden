@@ -1,0 +1,15 @@
+[48;2;0;85;119m[1;38;2;255;255;255mStreaming Logs Example[0m                                                                                                  [0m
+[38;2;136;136;136m[12:00:00] Application started[0m                                                                                          
+[38;2;136;136;136m[12:00:01] Processing item 1[0m                                                                                            
+[38;2;136;136;136m[12:00:02] Processing item 2[0m                                                                                            
+[38;2;136;136;136m[12:00:03] Processing item 3[0m                                                                                            
+[38;2;136;136;136m[12:00:04] Processing item 4[0m                                                                                            
+[38;2;136;136;136m[12:00:05] All items processed[0m                                                                                          
+[38;2;68;68;68m────────────────────────────────────────[0m                                                                                
+[48;2;0;68;85m[1;38;2;255;255;255mComplete! Press q to quit[0m                                                                                               [0m
+[38;2;102;102;102mPress SPACE to add entry | q to quit[0m                                                                                    [48;2;0;85;119m[1;38;2;255;255;255mStreaming Logs Example[0m  [0m[1;38;2;255;255;255mStreaming Logs Example[0m[38;2;136;136;136m[12:00:00] Application started[0m
+[38;2;136;136;136m[12:00:01] Processing item 1[0m  
+[38;2;136;136;136m[12:00:02] Processing item 2[0m  
+[38;2;136;136;136m[12:00:03] Processing item 3[0m  
+[38;2;136;136;136m[12:00:04] Processing item 4[0m  
+[38;2;136;136;136m[12:00:05] All items processed[0m[38;2;68;68;68m────────────────────────────────────────[0m                                                                                [48;2;0;68;85m[1;38;2;255;255;255mComplete! Press q to quit[0m  [0m[1;38;2;255;255;255mComplete! Press q to quit[0m[38;2;102;102;102mPress SPACE to add entry | q to quit[0m

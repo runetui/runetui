@@ -20,23 +20,44 @@ RuneTUI brings React/Ink-style declarative UI to Go's terminal ecosystem. Built 
 package main
 
 import (
+    "fmt"
     "log"
+
+    tea "github.com/charmbracelet/bubbletea"
     "github.com/runetui/runetui"
 )
 
 func main() {
-    app := runetui.New(func() runetui.Component {
+    count := 0
+
+    rootFunc := func() runetui.Component {
         return runetui.Box(
             runetui.BoxProps{
                 Direction: runetui.Column,
-                Padding:   runetui.SpacingAll(2),
+                Padding:   runetui.SpacingAll(1),
                 Border:    runetui.BorderSingle,
             },
-            runetui.Text("Hello, RuneTUI!", runetui.TextProps{Bold: true}),
-            runetui.Text("Press Ctrl+C to quit"),
+            runetui.Text("Counter", runetui.TextProps{Bold: true}),
+            runetui.Text(fmt.Sprintf("Count: %d", count)),
+            runetui.Text("k: up | j: down | q: quit"),
         )
-    })
+    }
 
+    updateFunc := func(msg tea.Msg) tea.Cmd {
+        if keyMsg, ok := msg.(tea.KeyMsg); ok {
+            switch keyMsg.String() {
+            case "k":
+                count++
+            case "j":
+                count--
+            case "q":
+                return tea.Quit
+            }
+        }
+        return nil
+    }
+
+    app := runetui.New(rootFunc, runetui.WithUpdate(updateFunc))
     if err := app.Run(); err != nil {
         log.Fatal(err)
     }
@@ -45,16 +66,16 @@ func main() {
 
 ## Status
 
-✅ **v0.1 - Core features complete:**
+✅ **v0.1+ - Core features complete with state management:**
 
 - [x] Core component system (Box, Text, VStack, HStack, Spacer, Static)
 - [x] Flexbox-inspired layout engine (flex-grow, flex-shrink, alignment, justification)
 - [x] Bubble Tea integration with adapter layer
 - [x] Static zones for efficient log rendering (no flicker)
-- [x] Testing utilities (RenderToString, snapshot testing, TestApp)
-- [x] Example applications with tests
-- [x] State management patterns documented
-- [x] 229 tests with ~100% coverage
+- [x] **State management via WithUpdate/WithInit options**
+- [x] Testing utilities (RenderToString, snapshot testing, assertion helpers)
+- [x] Example applications (counter, form, async, streaming)
+- [x] 361 tests with ~97% coverage
 
 🚧 **Future (post-v0.1):**
 
@@ -69,6 +90,7 @@ func main() {
 - **Flexbox Layouts**: Column/Row directions with flex properties, alignment, and spacing
 - **Static Zones**: Efficient rendering for logs and streaming output (no flicker)
 - **Rich Text Styling**: Colors, bold, italic, alignment, and text wrapping
+- **State Management**: WithUpdate/WithInit options for Elm Architecture patterns
 - **Testing Support**: Snapshot testing and component rendering utilities
 - **Bubble Tea Integration**: Built on the proven Elm Architecture pattern
 
@@ -79,6 +101,48 @@ func main() {
 - **VStack / HStack** - Convenient vertical/horizontal stack layouts
 - **Spacer** - Fixed or flexible spacing between components
 - **Static** - Accumulating zone for logs and streaming output (efficient, no re-render)
+
+## State Management
+
+RuneTUI follows the Elm Architecture pattern. State lives outside components and is captured via closures:
+
+```go
+// State in main scope
+count := 0
+
+// Component reads state via closure
+rootFunc := func() runetui.Component {
+    return runetui.Text(fmt.Sprintf("Count: %d", count))
+}
+
+// Update modifies state based on messages
+updateFunc := func(msg tea.Msg) tea.Cmd {
+    if keyMsg, ok := msg.(tea.KeyMsg); ok {
+        if keyMsg.String() == "k" {
+            count++
+        }
+    }
+    return nil
+}
+
+// Init runs once at startup (optional)
+initFunc := func() tea.Cmd {
+    return tea.Tick(time.Second, func(t time.Time) tea.Msg {
+        return tickMsg{}
+    })
+}
+
+app := runetui.New(rootFunc,
+    runetui.WithUpdate(updateFunc),
+    runetui.WithInit(initFunc),
+)
+```
+
+See `examples/` for complete working applications:
+- `counter` - Simple increment/decrement
+- `form` - Multi-field input with navigation
+- `async` - Loading states with spinner
+- `streaming` - Static log zones
 
 ## Why RuneTUI?
 

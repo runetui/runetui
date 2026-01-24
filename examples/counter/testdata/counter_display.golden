@@ -1,0 +1,8 @@
+┌────────────────────────────┐
+│[1mCounter[0m                     │
+│Count: 42                   │
+│                            │
+│[3mPress k/↑ to increment[0m      │
+│[3mPress j/↓ to decrement[0m      │
+│[3mPress q to quit[0m             │
+└────────────────────────────┘[1mCounter[0mCount: 42[3mPress k/↑ to increment[0m  [3mPress j/↓ to decrement[0m  [3mPress q to quit[0m

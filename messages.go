@@ -8,8 +8,38 @@ package runetui
 // - Messages flow through Update functions to modify state
 // - State changes trigger re-renders automatically
 //
+// RuneTUI provides WithUpdate and WithInit options to integrate
+// custom state management with the application lifecycle.
+//
 // This file documents the recommended patterns for managing state
 // and handling messages in RuneTUI applications.
+
+// Using WithUpdate and WithInit
+//
+// WithUpdate allows you to handle all messages in your application:
+//
+//	updateFunc := func(msg tea.Msg) tea.Cmd {
+//	    switch msg := msg.(type) {
+//	    case tea.KeyMsg:
+//	        // Handle key presses
+//	    case customMsg:
+//	        // Handle custom messages
+//	    }
+//	    return nil
+//	}
+//
+//	app := New(rootFunc, WithUpdate(updateFunc))
+//
+// WithInit runs once when the application starts and can return
+// an initial command (useful for starting timers or loading data):
+//
+//	initFunc := func() tea.Cmd {
+//	    return tea.Tick(time.Second, func(t time.Time) tea.Msg {
+//	        return tickMsg{}
+//	    })
+//	}
+//
+//	app := New(rootFunc, WithInit(initFunc), WithUpdate(updateFunc))
 
 // Pattern 1: Counter App (Simple State)
 //
@@ -21,38 +51,31 @@ package runetui
 //	    // State lives in main
 //	    count := 0
 //
-//	    // Custom message types
-//	    type incrementMsg struct{}
-//	    type decrementMsg struct{}
+//	    // Root component captures state via closure
+//	    rootFunc := func() Component {
+//	        return VStack(
+//	            Text(fmt.Sprintf("Count: %d", count)),
+//	            Text("Press k to increment, j to decrement"),
+//	        )
+//	    }
 //
 //	    // Update function modifies state based on messages
-//	    update := func(msg tea.Msg) tea.Cmd {
-//	        switch msg.(type) {
-//	        case incrementMsg:
-//	            count++
-//	        case decrementMsg:
-//	            count--
+//	    updateFunc := func(msg tea.Msg) tea.Cmd {
+//	        switch msg := msg.(type) {
 //	        case tea.KeyMsg:
-//	            key := msg.(tea.KeyMsg)
-//	            if key.String() == "+" {
-//	                return func() tea.Msg { return incrementMsg{} }
-//	            }
-//	            if key.String() == "-" {
-//	                return func() tea.Msg { return decrementMsg{} }
+//	            switch msg.String() {
+//	            case "k", "up":
+//	                count++
+//	            case "j", "down":
+//	                count--
+//	            case "q":
+//	                return tea.Quit
 //	            }
 //	        }
 //	        return nil
 //	    }
 //
-//	    // Root component captures state via closure
-//	    rootFunc := func() Component {
-//	        return VStack(
-//	            Text(fmt.Sprintf("Count: %d", count), TextProps{}),
-//	            Text("Press + to increment, - to decrement", TextProps{}),
-//	        )
-//	    }
-//
-//	    app := New(rootFunc)
+//	    app := New(rootFunc, WithUpdate(updateFunc))
 //	    app.Run()
 //	}
 
@@ -65,41 +88,45 @@ package runetui
 //	func main() {
 //	    // Structured state
 //	    type formState struct {
-//	        name     string
-//	        email    string
-//	        focusedField int
+//	        name    string
+//	        email   string
+//	        focused int
 //	    }
-//	    state := formState{}
+//	    state := &formState{}
 //
-//	    // Custom message types with data
-//	    type nameInputMsg struct{ value string }
-//	    type emailInputMsg struct{ value string }
+//	    // Root component renders form based on state
+//	    rootFunc := func() Component {
+//	        return VStack(
+//	            renderField("Name", state.name, state.focused == 0),
+//	            renderField("Email", state.email, state.focused == 1),
+//	            Text("Tab: next field | q: quit"),
+//	        )
+//	    }
 //
-//	    // Update function handles different message types
-//	    update := func(msg tea.Msg) tea.Cmd {
+//	    // Update function handles keyboard input
+//	    updateFunc := func(msg tea.Msg) tea.Cmd {
 //	        switch msg := msg.(type) {
-//	        case nameInputMsg:
-//	            state.name = msg.value
-//	        case emailInputMsg:
-//	            state.email = msg.value
 //	        case tea.KeyMsg:
-//	            // Handle keyboard input
-//	            if msg.Type == tea.KeyTab {
-//	                state.focusedField = (state.focusedField + 1) % 2
+//	            switch msg.Type {
+//	            case tea.KeyTab:
+//	                state.focused = (state.focused + 1) % 2
+//	            case tea.KeyRunes:
+//	                char := string(msg.Runes)
+//	                switch state.focused {
+//	                case 0:
+//	                    state.name += char
+//	                case 1:
+//	                    state.email += char
+//	                }
+//	            }
+//	            if msg.String() == "q" {
+//	                return tea.Quit
 //	            }
 //	        }
 //	        return nil
 //	    }
 //
-//	    // Root component renders form based on state
-//	    rootFunc := func() Component {
-//	        return VStack(
-//	            Text(fmt.Sprintf("Name: %s", state.name), TextProps{}),
-//	            Text(fmt.Sprintf("Email: %s", state.email), TextProps{}),
-//	        )
-//	    }
-//
-//	    app := New(rootFunc)
+//	    app := New(rootFunc, WithUpdate(updateFunc))
 //	    app.Run()
 //	}
 
@@ -114,50 +141,50 @@ package runetui
 //	    type appState struct {
 //	        loading bool
 //	        data    string
-//	        ticks   int
+//	        frame   int
 //	    }
-//	    state := appState{loading: true}
+//	    state := &appState{loading: true}
 //
 //	    // Custom message types
 //	    type tickMsg struct{}
-//	    type dataLoadedMsg struct{ data string }
+//	    type dataLoadedMsg string
+//
+//	    spinnerFrames := []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
+//
+//	    // Root component shows loading or data
+//	    rootFunc := func() Component {
+//	        if state.loading {
+//	            frame := spinnerFrames[state.frame%len(spinnerFrames)]
+//	            return Text(fmt.Sprintf("%s Loading...", frame))
+//	        }
+//	        return Text(fmt.Sprintf("Data: %s", state.data))
+//	    }
 //
 //	    // Update function handles async messages
-//	    update := func(msg tea.Msg) tea.Cmd {
+//	    updateFunc := func(msg tea.Msg) tea.Cmd {
 //	        switch msg := msg.(type) {
 //	        case tickMsg:
-//	            state.ticks++
-//	            // Return command to tick again
-//	            return tea.Tick(time.Millisecond*100, func(t time.Time) tea.Msg {
-//	                return tickMsg{}
-//	            })
+//	            if state.loading {
+//	                state.frame++
+//	                return tick()
+//	            }
 //	        case dataLoadedMsg:
 //	            state.loading = false
-//	            state.data = msg.data
-//	            return nil
+//	            state.data = string(msg)
 //	        case tea.KeyMsg:
-//	            if msg.Type == tea.KeyEnter && state.loading {
-//	                // Simulate data load
-//	                return func() tea.Msg {
-//	                    time.Sleep(time.Second * 2)
-//	                    return dataLoadedMsg{data: "Hello World"}
-//	                }
+//	            if msg.String() == "q" {
+//	                return tea.Quit
 //	            }
 //	        }
 //	        return nil
 //	    }
 //
-//	    // Root component shows loading or data
-//	    rootFunc := func() Component {
-//	        if state.loading {
-//	            spinner := []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
-//	            frame := spinner[state.ticks%len(spinner)]
-//	            return Text(fmt.Sprintf("%s Loading...", frame), TextProps{})
-//	        }
-//	        return Text(fmt.Sprintf("Data: %s", state.data), TextProps{})
+//	    // Init function starts the timer and data load
+//	    initFunc := func() tea.Cmd {
+//	        return tea.Batch(loadData(), tick())
 //	    }
 //
-//	    app := New(rootFunc)
+//	    app := New(rootFunc, WithInit(initFunc), WithUpdate(updateFunc))
 //	    app.Run()
 //	}
 
@@ -171,6 +198,7 @@ package runetui
 // 2. Define custom message types for domain events:
 //    - struct{} for simple events (incrementMsg, saveMsg)
 //    - struct{ data T } for events with data (inputMsg, loadedMsg)
+//    - type aliases for simple data (type dataLoadedMsg string)
 //
 // 3. Message naming convention:
 //    - Use descriptive past-tense names for completed actions (dataLoadedMsg)
@@ -182,22 +210,25 @@ package runetui
 //    - State lives in main() or in the scope where New() is called
 //    - Components capture state via closures in rootFunc
 //    - Never store state inside Component structs
+//    - Use pointers for shared state that needs mutation
 //
 // 2. State Updates:
-//    - All state updates happen in the Update function
-//    - Update function is called for every message
+//    - All state updates happen in the UpdateFunc
+//    - UpdateFunc is called for every message
 //    - State changes automatically trigger re-renders
 //
 // 3. State Sharing:
 //    - Multiple components can read the same state via closure
-//    - Update function is the single source of state mutations
+//    - UpdateFunc is the single source of state mutations
 //    - No need for context or props drilling
 //
 // Update Function Signature
 //
-// The Update function follows Bubble Tea's signature:
+// The UpdateFunc follows Bubble Tea's signature:
 //
-//	func update(msg tea.Msg) tea.Cmd {
+//	type UpdateFunc func(msg tea.Msg) tea.Cmd
+//
+//	updateFunc := func(msg tea.Msg) tea.Cmd {
 //	    switch msg := msg.(type) {
 //	    case CustomMsg:
 //	        // Handle custom message
@@ -209,6 +240,19 @@ package runetui
 // - Takes a tea.Msg (any message type)
 // - Returns tea.Cmd (optional command to execute)
 // - Use type switch to handle different message types
+//
+// Init Function Signature
+//
+// The InitFunc runs once at startup:
+//
+//	type InitFunc func() tea.Cmd
+//
+//	initFunc := func() tea.Cmd {
+//	    return tea.Batch(loadData(), startTimer())
+//	}
+//
+// - Returns tea.Cmd (optional initial command)
+// - Use tea.Batch() to run multiple commands
 //
 // Returning Commands (Side Effects)
 //
@@ -230,15 +274,18 @@ package runetui
 //	    return tickMsg{}
 //	})
 //
+//	// Multiple commands
+//	return tea.Batch(cmd1, cmd2, cmd3)
+//
 // Common Patterns
 //
 // Conditional rendering based on state:
 //
 //	rootFunc := func() Component {
 //	    if state.loading {
-//	        return Text("Loading...", TextProps{})
+//	        return Text("Loading...")
 //	    }
-//	    return Text(state.data, TextProps{})
+//	    return Text(state.data)
 //	}
 //
 // List rendering:
@@ -246,7 +293,7 @@ package runetui
 //	rootFunc := func() Component {
 //	    children := make([]Component, len(items))
 //	    for i, item := range items {
-//	        children[i] = Text(item, TextProps{})
+//	        children[i] = Text(item)
 //	    }
 //	    return VStack(children...)
 //	}
@@ -257,7 +304,7 @@ package runetui
 //	    switch msg.String() {
 //	    case "enter":
 //	        return submitCommand()
-//	    case "esc":
+//	    case "q":
 //	        return tea.Quit
 //	    }
 //
@@ -265,34 +312,37 @@ package runetui
 //
 // Test state updates independently:
 //
-//	func TestUpdate_IncrementMsg_UpdatesCount(t *testing.T) {
+//	func TestUpdate_IncrementKey_UpdatesCount(t *testing.T) {
 //	    count := 0
-//	    update := func(msg tea.Msg) tea.Cmd {
-//	        if _, ok := msg.(incrementMsg); ok {
-//	            count++
+//	    updateFunc := func(msg tea.Msg) tea.Cmd {
+//	        if keyMsg, ok := msg.(tea.KeyMsg); ok {
+//	            if keyMsg.String() == "k" {
+//	                count++
+//	            }
 //	        }
 //	        return nil
 //	    }
 //
-//	    update(incrementMsg{})
+//	    updateFunc(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'k'}})
 //	    if count != 1 {
 //	        t.Errorf("expected count=1, got %d", count)
 //	    }
 //	}
 //
-// Test component rendering:
+// Test component rendering with runetui/testing:
 //
 //	func TestRootFunc_WithState_RendersCorrectly(t *testing.T) {
 //	    count := 5
 //	    rootFunc := func() Component {
-//	        return Text(fmt.Sprintf("Count: %d", count), TextProps{})
+//	        return Text(fmt.Sprintf("Count: %d", count))
 //	    }
 //
-//	    comp := rootFunc()
-//	    rendered := comp.Render(Layout{Width: 8, Height: 1})
-//	    if rendered != "Count: 5" {
-//	        t.Errorf("unexpected render: %q", rendered)
-//	    }
+//	    output := testing.RenderToString(rootFunc, 80, 24)
+//	    testing.AssertContainsText(t, output, "Count: 5")
 //	}
 //
-// For full working examples, see the test file messages_test.go.
+// For full working examples, see the examples/ directory:
+// - examples/counter - Simple counter with increment/decrement
+// - examples/form - Multi-field form with navigation
+// - examples/async - Async loading with spinner
+// - examples/streaming - Static log zones with accumulating content

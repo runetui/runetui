@@ -7,11 +7,12 @@
 *.test
 *.out
 
-# Compiled examples
-examples/*/hello
-examples/*/streaming
-examples/**/hello
-examples/**/streaming
+# Compiled example binaries (executables without extension)
+examples/hello/hello
+examples/streaming/streaming
+examples/counter/counter
+examples/form/form
+examples/async/async
 
 # Build artifacts
 dist/

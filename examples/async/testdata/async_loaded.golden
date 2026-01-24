@@ -1,0 +1,9 @@
+┌────────────────────────────┐
+│[1mAsync Example[0m               │
+│                            │
+│[1mData Loaded![0m                │
+│Data loaded successfully    │
+│                            │
+│[3mPress q to quit[0m             │
+└────────────────────────────┘[1mAsync Example[0m[1mData Loaded![0m            
+Data loaded successfully[1mData Loaded![0mData loaded successfully[3mPress q to quit[0m
